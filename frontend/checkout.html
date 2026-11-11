@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout | BookMyShow</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    color: #222;
+}
+
+header {
+    background: #171b2c;
+    color: white;
+    padding: 20px 7%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 25px;
+    font-weight: bold;
+}
+
+.logo span {
+    color: #f84464;
+}
+
+header a {
+    color: white;
+    text-decoration: none;
+}
+
+.container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+h2 {
+    margin-bottom: 25px;
+}
+
+.card {
+    background: white;
+    padding: 25px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    box-shadow: 0 3px 15px #0001;
+}
+
+.details {
+    line-height: 2;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 16px 0;
+}
+
+.total {
+    font-size: 21px;
+    font-weight: bold;
+    border-top: 1px solid #ddd;
+    padding-top: 20px;
+}
+
+.payment-option {
+    display: block;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin: 12px 0;
+    cursor: pointer;
+}
+
+.payment-option input {
+    margin-right: 12px;
+}
+
+.pay-btn {
+    width: 100%;
+    padding: 16px;
+    background: #f84464;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 17px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.pay-btn:disabled {
+    background: #aaa;
+    cursor: not-allowed;
+}
+
+.note {
+    color: #777;
+    font-size: 13px;
+}
+
+#message {
+    margin-top: 15px;
+    color: #c0392b;
+}
+
+@media(max-width:600px) {
+    .container {
+        margin: 15px auto;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="logo">BOOK<span>MY</span>SHOW</div>
+    <a href="index.html">← Home</a>
+</header>
+
+<div class="container">
+
+<h2>Complete Your Booking</h2>
+
+<div class="card">
+    <h3>Movie Details</h3>
+    <div class="details" id="movieDetails">
+        Loading...
+    </div>
+</div>
+
+<div class="card">
+    <h3>Booking Summary</h3>
+
+    <div class="summary-row">
+        <span>Selected Seats</span>
+        <strong id="seats">-</strong>
+    </div>
+
+    <div class="summary-row">
+        <span>Ticket Amount</span>
+        <strong id="ticketAmount">₹0</strong>
+    </div>
+
+    <div class="summary-row">
+        <span>Convenience Fee</span>
+        <strong id="fee">₹0</strong>
+    </div>
+
+    <div class="summary-row">
+        <span>GST on Convenience Fee (18%)</span>
+        <strong id="gst">₹0</strong>
+    </div>
+
+    <div class="summary-row total">
+        <span>Total Amount</span>
+        <strong id="total">₹0</strong>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Customer Details</h3>
+
+    <label>Full Name</label>
+    <input type="text" id="customerName"
+           placeholder="Enter your full name"
+           required
+           style="width:100%;padding:13px;margin:10px 0 18px;border:1px solid #ddd;border-radius:8px;">
+
+    <label>Email Address</label>
+    <input type="email" id="customerEmail"
+           placeholder="Enter your email"
+           required
+           style="width:100%;padding:13px;margin:10px 0;border:1px solid #ddd;border-radius:8px;">
+</div>
+
+<div class="card">
+    <h3>Select Payment Method</h3>
+
+    <label class="payment-option">
+        <input type="radio" name="payment" value="UPI" checked>
+        UPI Payment
+    </label>
+
+    <label class="payment-option">
+        <input type="radio" name="payment" value="Card">
+        Debit / Credit Card
+    </label>
+
+    <label class="payment-option">
+        <input type="radio" name="payment" value="Net Banking">
+        Net Banking
+    </label>
+
+    <p class="note">
+        Demo project: payment will be simulated.
+        No real money will be charged.
+    </p>
+
+    <button class="pay-btn" id="payBtn" disabled>
+        Proceed to Payment
+    </button>
+
+    <p id="message"></p>
+</div>
+
+</div>
+
+<script>
+
+const params = new URLSearchParams(location.search);
+
+const showId = params.get("show_id");
+const seatList = (params.get("seats") || "")
+    .split(",")
+    .filter(Boolean);
+
+let grandTotal = 0;
+let currentShow = null;
+
+async function loadCheckout() {
+
+    const payBtn = document.getElementById("payBtn");
+
+    try {
+
+        if (!showId || !/^[1-9]\d*$/.test(showId) ||
+            seatList.length === 0 || seatList.length > 10 ||
+            new Set(seatList).size !== seatList.length ||
+            !seatList.every(s => /^[A-D][1-8]$/.test(s))) {
+            throw new Error("Invalid booking details.");
+        }
+
+        const response = await fetch(
+            "../backend/api/seats.php?show_id=" +
+            encodeURIComponent(showId)
+        );
+
+        const data = await response.json();
+        currentShow = data.show;
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Show unavailable");
+        }
+
+        const booked = data.booked_seats || [];
+
+        if (seatList.some(s => booked.includes(s))) {
+            throw new Error("One or more selected seats are already booked. Please go back and select other seats.");
+        }
+
+        const price = Number(data.show.price);
+
+        if (!Number.isFinite(price) || price <= 0) {
+            throw new Error("Invalid ticket price.");
+        }
+
+        const ticketAmount = price * seatList.length;
+        const fee = 30;
+        const gst = fee * 0.18;
+
+        grandTotal = ticketAmount + fee + gst;
+
+        document.getElementById("movieDetails").innerHTML = `
+            <strong>${escapeHTML(data.show.title)}</strong><br>
+            Theatre: ${escapeHTML(data.show.theatre_name)}<br>
+            Date: ${escapeHTML(data.show.show_date)}<br>
+            Time: ${escapeHTML(data.show.show_time)}
+        `;
+
+        document.getElementById("seats").textContent =
+            seatList.join(", ");
+
+        document.getElementById("ticketAmount").textContent =
+            "₹" + ticketAmount.toFixed(2);
+
+        document.getElementById("fee").textContent =
+            "₹" + fee.toFixed(2);
+
+        document.getElementById("gst").textContent =
+            "₹" + gst.toFixed(2);
+
+        document.getElementById("total").textContent =
+            "₹" + grandTotal.toFixed(2);
+
+        payBtn.disabled = false;
+
+    } catch (error) {
+
+        document.getElementById("message").textContent =
+            error.message;
+
+    }
+
+}
+
+function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[char]);
+}
+
+document.getElementById("payBtn").addEventListener("click", async () => {
+
+    const payBtn = document.getElementById("payBtn");
+    const message = document.getElementById("message");
+
+    const customerName =
+        document.getElementById("customerName").value.trim();
+
+    const email =
+        document.getElementById("customerEmail").value.trim();
+
+    const payment = document.querySelector(
+        'input[name="payment"]:checked'
+    ).value;
+
+    if (!customerName || !email) {
+        message.textContent = "Please enter your name and email.";
+        return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        message.textContent = "Please enter a valid email address.";
+        return;
+    }
+
+    payBtn.disabled = true;
+    payBtn.textContent = "Processing Booking...";
+    message.textContent = "";
+
+    try {
+
+        const response = await fetch(
+            "../backend/api/bookings.php",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    show_id: Number(showId),
+                    customer_name: customerName,
+                    email: email,
+                    seats: seatList,
+                    payment_method: payment
+                })
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.message || "Booking failed."
+            );
+        }
+
+        const bookingDetails = {
+    booking_id: result.booking_id,
+
+    movie: currentShow.title,
+    theatre: currentShow.theatre_name,
+    date: currentShow.show_date,
+    time: currentShow.show_time,
+
+    customer_name: customerName,
+    email: email,
+
+    show_id: showId,
+    seats: result.seats,
+
+    payment_method: payment,
+
+    ticket_amount: result.ticket_amount,
+    convenience_fee: result.convenience_fee,
+    gst: result.gst,
+    total_amount: result.total_amount
+};
+
+        sessionStorage.setItem(
+            "confirmedBooking",
+            JSON.stringify(bookingDetails)
+        );
+
+        message.style.color = "green";
+
+        message.textContent =
+            "Booking confirmed! Booking ID: " +
+            result.booking_id;
+
+        payBtn.textContent = "Booking Confirmed";
+
+        window.location.href = "confirmation.html";
+    }catch (error) {
+
+        message.style.color = "#c0392b";
+        message.textContent = error.message;
+
+        payBtn.disabled = false;
+        payBtn.textContent = "Proceed to Payment";
+
+    }
+
+});
+
+loadCheckout();
+
+</script>
+
+</body>
+</html>

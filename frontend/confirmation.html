@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Booking Confirmed | BookMyShow</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f3f3f3;
+    color: #222;
+}
+
+header {
+    background: #171b2c;
+    color: white;
+    padding: 20px 7%;
+    font-size: 25px;
+    font-weight: bold;
+}
+
+header span { color: #f84464; }
+
+.container {
+    max-width: 650px;
+    margin: 50px auto;
+    padding: 20px;
+}
+
+.ticket {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 25px #0001;
+}
+
+.success {
+    text-align: center;
+    color: #16a05d;
+}
+
+.success h1 { font-size: 28px; }
+
+.booking-id {
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.details {
+    line-height: 2.2;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+
+.total {
+    font-size: 22px;
+    font-weight: bold;
+    color: #f84464;
+}
+
+.buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 25px;
+}
+
+button {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.print { background: #171b2c; color: white; }
+.home { background: #f84464; color: white; }
+
+@media print {
+    header, .buttons { display: none; }
+    body { background: white; }
+    .container { margin: 0 auto; }
+    .ticket { box-shadow: none; }
+}
+</style>
+</head>
+
+<body>
+
+<header>BOOK<span>MY</span>SHOW</header>
+
+<div class="container">
+<div class="ticket">
+
+<div class="success">
+    <h1>✓ Booking Confirmed!</h1>
+    <p>Your tickets have been booked successfully.</p>
+</div>
+
+<div class="booking-id">
+    Booking ID: <strong id="bookingId">-</strong>
+</div>
+
+<h3>Movie Details</h3>
+<div class="details">
+    <div class="row"><span>Movie</span><strong id="movie">-</strong></div>
+    <div class="row"><span>Theatre</span><strong id="theatre">-</strong></div>
+    <div class="row"><span>Date</span><strong id="date">-</strong></div>
+    <div class="row"><span>Time</span><strong id="time">-</strong></div>
+    <div class="row"><span>Customer</span><strong id="customer">-</strong></div>
+    <div class="row"><span>Seats</span><strong id="seats">-</strong></div>
+    <div class="row"><span>Payment</span><strong id="payment">-</strong></div>
+</div>
+
+<h3>Payment Summary</h3>
+<div class="row"><span>Ticket Amount</span><strong id="ticket">-</strong></div>
+<div class="row"><span>Convenience Fee</span><strong id="fee">-</strong></div>
+<div class="row"><span>GST</span><strong id="gst">-</strong></div>
+<div class="row total"><span>Total Paid</span><strong id="total">-</strong></div>
+
+<div class="buttons">
+    <button class="print" onclick="window.print()">Print Ticket</button>
+    <button class="home" onclick="location.href='index.html'">Home</button>
+</div>
+
+</div>
+</div>
+
+<script>
+const booking = JSON.parse(
+    sessionStorage.getItem("confirmedBooking") || "null"
+);
+
+if (!booking) {
+    document.querySelector(".container").innerHTML =
+        "<h2>No booking information found. Please complete a booking first.</h2>";
+} else {
+    const money = value =>
+        "₹" + Number(value || 0).toFixed(2);
+
+    document.getElementById("bookingId").textContent = booking.booking_id;
+    document.getElementById("movie").textContent = booking.movie || "-";
+    document.getElementById("theatre").textContent = booking.theatre || "-";
+    document.getElementById("date").textContent = booking.date || "-";
+    document.getElementById("time").textContent = booking.time || "-";
+    document.getElementById("customer").textContent = booking.customer_name;
+    document.getElementById("seats").textContent = booking.seats.join(", ");
+    document.getElementById("payment").textContent = booking.payment_method;
+
+    document.getElementById("ticket").textContent =
+        money(booking.ticket_amount);
+
+    document.getElementById("fee").textContent =
+        money(booking.convenience_fee);
+
+    document.getElementById("gst").textContent =
+        money(booking.gst);
+
+    document.getElementById("total").textContent =
+        money(booking.total_amount);
+}
+</script>
+
+</body>
+</html>

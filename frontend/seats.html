@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Select Seats | BookMyShow</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="logo">BOOK<span>MY</span>SHOW</div>
+    <a href="index.html" class="back-home">← Home</a>
+</header>
+
+<main class="seat-page">
+
+    <div class="show-info" id="showInfo">
+        Loading show details...
+    </div>
+
+    <h2>Select Your Seats</h2>
+
+    <div class="screen">
+        ALL EYES THIS WAY
+    </div>
+
+    <div class="seat-layout" id="seatLayout"></div>
+
+    <div class="seat-legend">
+        <span>🟢 Available</span>
+        <span>🔴 Selected</span>
+        <span>⚫ Booked</span>
+    </div>
+
+    <div class="booking-summary">
+
+        <h3>Booking Summary</h3>
+
+        <p>Selected Seats:
+            <strong id="selectedSeats">None</strong>
+        </p>
+
+        <p>Total Amount:
+            <strong id="totalAmount">₹0</strong>
+        </p>
+
+        <button id="continueBtn" disabled>
+            Continue to Booking
+        </button>
+
+    </div>
+
+</main>
+
+<script>
+
+const API = "../backend/api";
+
+const params = new URLSearchParams(window.location.search);
+
+const showId = params.get("show_id");
+
+let price = 0;
+let bookedSeats = [];
+let selectedSeats = [];
+
+const rows = ["A", "B", "C", "D"];
+const seatsPerRow = 8;
+
+const seatLayout = document.getElementById("seatLayout");
+
+async function loadSeats() {
+
+    if (!showId || !/^[1-9]\d*$/.test(showId)) {
+        document.getElementById("showInfo").textContent =
+            "Invalid show ID.";
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `${API}/seats.php?show_id=${encodeURIComponent(showId)}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Unable to load seats");
+        }
+
+        price = Number(data.show.price);
+        bookedSeats = data.booked_seats;
+
+        document.getElementById("showInfo").textContent =
+            `${data.show.title} | ${data.show.theatre_name} | ${data.show.show_time}`;
+
+        createSeats();
+
+    } catch (error) {
+
+        document.getElementById("showInfo").textContent =
+            "Unable to load seat information.";
+
+        console.error(error);
+
+    }
+
+}
+
+
+function createSeats() {
+
+    seatLayout.innerHTML = "";
+
+    rows.forEach(row => {
+
+        const rowElement = document.createElement("div");
+        rowElement.className = "seat-row";
+
+        const label = document.createElement("span");
+        label.className = "row-label";
+        label.textContent = row;
+
+        rowElement.appendChild(label);
+
+        for (let i = 1; i <= seatsPerRow; i++) {
+
+            const seatName = row + i;
+
+            const seat = document.createElement("button");
+
+            seat.textContent = i;
+            seat.className = "seat";
+
+            if (bookedSeats.includes(seatName)) {
+
+                seat.classList.add("booked");
+                seat.disabled = true;
+
+            } else {
+
+                seat.addEventListener("click", () => {
+
+                    toggleSeat(seatName);
+
+                });
+
+            }
+
+            rowElement.appendChild(seat);
+
+        }
+
+        seatLayout.appendChild(rowElement);
+
+    });
+
+}
+
+
+function toggleSeat(seatName) {
+
+    if (selectedSeats.includes(seatName)) {
+
+        selectedSeats = selectedSeats.filter(
+            seat => seat !== seatName
+        );
+
+    } else {
+
+        if (selectedSeats.length >= 10) {
+            alert("Maximum 10 seats allowed.");
+            return;
+        }
+
+        selectedSeats.push(seatName);
+
+    }
+
+    updateSummary();
+
+}
+
+
+function updateSummary() {
+
+    document.querySelectorAll(".seat-row").forEach(row => {
+
+        const rowLabel = row.querySelector(".row-label").textContent;
+
+        row.querySelectorAll(".seat").forEach((seat, index) => {
+
+            const seatName = rowLabel + (index + 1);
+
+            seat.classList.toggle(
+                "selected",
+                selectedSeats.includes(seatName)
+            );
+
+        });
+
+    });
+
+    document.getElementById("selectedSeats").textContent =
+        selectedSeats.length ? selectedSeats.join(", ") : "None";
+
+    document.getElementById("totalAmount").textContent =
+        "₹" + (selectedSeats.length * price).toFixed(2);
+
+    document.getElementById("continueBtn").disabled =
+        selectedSeats.length === 0;
+
+}
+
+
+document.getElementById("continueBtn").addEventListener(
+    "click",
+    () => {
+
+        const query = new URLSearchParams({
+            show_id: showId,
+            seats: selectedSeats.join(",")
+        });
+
+        window.location.href =
+            "checkout.html?" + query.toString();
+
+    }
+);
+
+
+loadSeats();
+
+</script>
+
+</body>
+</html>

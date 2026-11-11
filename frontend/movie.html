@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Movie Details | BookMyShow</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <header class="navbar">
+
+        <div class="logo">
+            BOOK<span>MY</span>SHOW
+        </div>
+
+        <a href="index.html" class="back-home">
+            ← Back to Movies
+        </a>
+
+        <div class="location">
+            📍 Bengaluru
+        </div>
+
+    </header>
+
+
+    <!-- Movie Details -->
+    <section class="movie-details" id="movieDetails">
+
+        <p>Loading movie details...</p>
+
+    </section>
+
+
+    <!-- Theatre Section -->
+    <section class="theatre-section">
+
+        <h2>Available Theatres & Showtimes</h2>
+
+        <p class="subtitle">
+            Select your preferred theatre and showtime.
+        </p>
+
+        <div id="showList">
+
+            <p>Loading showtimes...</p>
+
+        </div>
+
+    </section>
+
+
+    <footer>
+
+        <h2>BOOKMYSHOW</h2>
+
+        <p>Your entertainment destination.</p>
+
+        <p>© 2026 BookMyShow Clone Project</p>
+
+    </footer>
+
+
+<script>
+
+const API = "../backend/api";
+
+// Get movie ID from URL
+const params = new URLSearchParams(window.location.search);
+
+const movieId = params.get("id");
+
+const movieDetails = document.getElementById("movieDetails");
+
+const showList = document.getElementById("showList");
+
+
+// Load movie information
+async function loadMovie() {
+
+    if (!movieId || !/^[1-9]\d*$/.test(movieId)) {
+        movieDetails.textContent = "Invalid movie ID.";
+        showList.innerHTML = "";
+        return;
+    }
+
+    try {
+
+        const response = await fetch(`${API}/movies.php`);
+
+        if (!response.ok) throw new Error("Movie API error");
+
+        const data = await response.json();
+
+        const movie = data.movies.find(
+            item => String(item.id) === movieId
+        );
+
+        if (!movie) {
+            movieDetails.textContent = "Movie not found.";
+            return;
+        }
+
+        document.title = movie.title + " | BookMyShow";
+
+        movieDetails.innerHTML = "";
+
+        const image = document.createElement("img");
+        image.className = "details-poster";
+        image.src = movie.poster_url || "";
+        image.alt = movie.title;
+
+        image.onerror = () => {
+            image.src = "https://placehold.co/400x600?text=Movie";
+        };
+
+        const content = document.createElement("div");
+        content.className = "details-content";
+
+        const title = document.createElement("h1");
+        title.textContent = movie.title;
+
+        const genre = document.createElement("p");
+        genre.textContent = "Genre: " + movie.genre;
+
+        const language = document.createElement("p");
+        language.textContent = "Language: " + movie.language;
+
+        const duration = document.createElement("p");
+        duration.textContent = "Duration: " + movie.duration;
+
+        const rating = document.createElement("p");
+        rating.textContent = "⭐ " + movie.rating + "/10";
+
+        const description = document.createElement("p");
+        description.textContent = movie.description;
+
+        content.append(
+            title,
+            genre,
+            language,
+            duration,
+            rating,
+            description
+        );
+
+        movieDetails.append(image, content);
+
+        loadShows();
+
+    } catch (error) {
+
+        movieDetails.textContent =
+            "Unable to load movie details.";
+
+        console.error(error);
+
+    }
+
+}
+
+
+// Load theatre and show information
+async function loadShows() {
+
+    try {
+
+        const response = await fetch(
+            `${API}/shows.php?movie_id=${encodeURIComponent(movieId)}`
+        );
+
+        if (!response.ok) throw new Error("Shows API error");
+
+        const data = await response.json();
+
+        showList.innerHTML = "";
+
+        if (!data.success || data.shows.length === 0) {
+
+            showList.textContent = "No shows available.";
+
+            return;
+        }
+
+        data.shows.forEach(show => {
+
+            const card = document.createElement("div");
+
+            card.className = "theatre-card";
+
+            const name = document.createElement("h3");
+            name.textContent = show.theatre_name;
+
+            const address = document.createElement("p");
+            address.textContent = "📍 " + show.address;
+
+            const date = document.createElement("p");
+            date.textContent = "Date: " + show.show_date;
+
+            const time = document.createElement("p");
+            time.textContent = "Time: " + show.show_time;
+
+            const price = document.createElement("p");
+            price.className = "show-price";
+            price.textContent = "₹" + show.price;
+
+            const button = document.createElement("a");
+
+            button.className = "show-button";
+            button.textContent = "Select Seats";
+
+            button.href =
+                `seats.html?show_id=${encodeURIComponent(show.id)}&movie_id=${encodeURIComponent(movieId)}`;
+
+            card.append(
+                name,
+                address,
+                date,
+                time,
+                price,
+                button
+            );
+
+            showList.appendChild(card);
+
+        });
+
+    } catch (error) {
+
+        showList.textContent =
+            "Unable to load theatre showtimes.";
+
+        console.error(error);
+
+    }
+
+}
+
+
+// Start
+loadMovie();
+
+</script>
+
+</body>
+</html>
