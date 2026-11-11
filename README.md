@@ -74,7 +74,7 @@ BOOKMYSHOW/
 7. Configure the database connection in the backend.
 8. Open the project:
 
-http://localhost/bookmyshow/frontend/
+[Visit Live BookMyShow Clone](https://mehekbookmyshow.gt.tc)
 
 ## 🗄️ Database Tables
 
