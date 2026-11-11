@@ -96,7 +96,7 @@ To develop a full-stack movie ticket booking platform demonstrating frontend dev
 
 ## 👨‍💻 Developer
 
-Syed Rayan
+Syed Mehek Taj
 
 BCA – Data Science
 
